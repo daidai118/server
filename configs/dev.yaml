@@ -1,0 +1,26 @@
+environment: dev
+
+database:
+  dsn: laghaim:laghaim@tcp(127.0.0.1:3306)/laghaim?parseTime=true&multiStatements=true
+  max_open_conns: 20
+  max_idle_conns: 10
+  conn_max_lifetime: 30m
+
+session:
+  ticket_ttl: 2m
+
+login_server:
+  host: 0.0.0.0
+  port: 4005
+
+game_manager:
+  host: 0.0.0.0
+  port: 4007
+
+zone_server:
+  host: 0.0.0.0
+  port: 4008
+
+admin_web:
+  host: 0.0.0.0
+  port: 8080

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /Users/daidai/ai/server && git init && git add -A && git status)"
+    ]
+  }
+}

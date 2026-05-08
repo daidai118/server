@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS gm_logs;
+DROP TABLE IF EXISTS equipments;
+DROP TABLE IF EXISTS inventory_items;
+DROP TABLE IF EXISTS inventories;
+DROP TABLE IF EXISTS character_stats;
+DROP TABLE IF EXISTS characters;
+DROP TABLE IF EXISTS accounts;
