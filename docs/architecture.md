@@ -155,8 +155,9 @@ internal/
 
 ### 数据库
 
-- MySQL 8 / InnoDB
+- MySQL / MariaDB / InnoDB
 - 迁移全部通过 `migrations/`
+- 默认使用 `utf8mb4_unicode_ci`，避免本地 MariaDB 无法执行 migration
 - 高并发对象必须有 `row_version` 或事务保护
 
 ### 观测

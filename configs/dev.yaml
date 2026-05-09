@@ -1,5 +1,8 @@
 environment: dev
 
+storage:
+  backend: memory
+
 database:
   dsn: laghaim:laghaim@tcp(127.0.0.1:3306)/laghaim?parseTime=true&multiStatements=true
   max_open_conns: 20
@@ -20,6 +23,26 @@ game_manager:
 zone_server:
   host: 0.0.0.0
   port: 4008
+  advertise_host: 127.0.0.1
+  advertise_port: 4008
+  static_npcs:
+    - index: 10001
+      vnum: 2001
+      map_id: 1
+      zone_id: 0
+      pos_x: 33100
+      pos_z: 33100
+      dir: 0
+      vital: 100
+  static_items:
+    - index: 20001
+      item_vnum: 5001
+      map_id: 1
+      zone_id: 0
+      pos_x: 32950
+      pos_z: 32950
+      dir: 0
+      timed: false
 
 admin_web:
   host: 0.0.0.0

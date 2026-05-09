@@ -22,6 +22,7 @@ type Player struct {
 	PosY        float64
 	PosZ        float64
 	Direction   float64
+	Wearings    [7]int32
 }
 
 type Runtime struct {
@@ -50,6 +51,7 @@ func (r *Runtime) Join(spawn service.OnlineSpawnResult) (Player, []Player) {
 		PosY:        spawn.PosY,
 		PosZ:        spawn.PosZ,
 		Direction:   spawn.Direction,
+		Wearings:    spawn.MapWearings,
 	}
 
 	visible := make([]Player, 0)
@@ -93,6 +95,29 @@ func (r *Runtime) Move(characterID uint64, posX, posY, posZ, direction float64) 
 	player.PosY = posY
 	player.PosZ = posZ
 	player.Direction = direction
+	r.players[characterID] = player
+
+	visible := make([]Player, 0)
+	for _, existing := range r.players {
+		if existing.CharacterID == characterID {
+			continue
+		}
+		if existing.MapID == player.MapID && existing.ZoneID == player.ZoneID {
+			visible = append(visible, existing)
+		}
+	}
+	return player, visible, nil
+}
+
+func (r *Runtime) UpdateWearings(characterID uint64, wearings [7]int32) (Player, []Player, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	player, ok := r.players[characterID]
+	if !ok {
+		return Player{}, nil, ErrPlayerNotFound
+	}
+	player.Wearings = wearings
 	r.players[characterID] = player
 
 	visible := make([]Player, 0)

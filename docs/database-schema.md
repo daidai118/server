@@ -55,6 +55,7 @@ erDiagram
 - `id`
 - `account_id`
 - `slot_index`
+- `active_slot_index`（生成列，仅未删除角色参与唯一约束，保证软删除后槽位可复用）
 - `name` 唯一
 - `race / sex / hair`
 - `level / experience`
@@ -66,7 +67,7 @@ erDiagram
 索引：
 
 - `uk_characters_name`
-- `uk_characters_account_slot`
+- `uk_characters_account_active_slot`
 - `idx_characters_map`
 
 ### `character_stats`
@@ -102,6 +103,11 @@ erDiagram
 
 P0 migration 先支持角色自有容器。
 
+当前建角初始化会创建：
+
+- `bag`，容量 60。
+- `quickbar`，容量 12。
+
 ### `inventory_items`
 
 用途：背包/仓库里的物品实例
@@ -124,6 +130,12 @@ P0 migration 先支持角色自有容器。
 - `uk_inventory_items_slot`
 - `idx_inventory_items_item_vnum`
 
+当前 bootstrap 行为：
+
+- 建角时会在 `bag` 的 slot 0 创建一个 starter 物品实例。
+- 建角时会在 `quickbar` 的 slot 0 创建一个 starter 快捷栏物品记录。
+- 进图时 `inven` / `quick` 文本命令从 `inventory_items` 读取，不再只发空初始化。
+
 ### `equipments`
 
 用途：角色装备位到物品实例的映射
@@ -139,6 +151,12 @@ P0 migration 先支持角色自有容器。
 
 - `PRIMARY KEY (character_id, equipment_slot)`
 - `inventory_item_id` 全局唯一，避免一件物品同时被多个装备位引用
+
+当前 bootstrap 行为：
+
+- 建角时会把 bag slot 0 的 starter 物品映射到 `equipment_slot = 0`。
+- 角色列表、进图 `wearing` 文本命令、其他玩家可见的 `UpdMapInChar` 都从 `equipments -> inventory_items` 读取装备 vnum / 物品属性。
+- 仓储层会校验装备物品属于当前角色，避免把其他角色的物品挂到本角色装备位。
 
 ### `gm_logs`
 
@@ -210,6 +228,11 @@ P0 migration 先支持角色自有容器。
 - `migrations/000001_p0_core.up.sql`
 - `migrations/000001_p0_core.down.sql`
 
+补充说明：
+
+- migration 当前使用 `utf8mb4_unicode_ci`，兼容本地 MariaDB 与 MySQL。
+- `characters.active_slot_index` 是生成列，用来保证软删除后角色槽位可复用。
+
 当前 migration 已覆盖：
 
 - `accounts`
@@ -219,3 +242,11 @@ P0 migration 先支持角色自有容器。
 - `inventory_items`
 - `equipments`
 - `gm_logs`
+
+当前代码已在 memory 与 MySQL 两个仓储后端中实现 starter item、quickbar item、equipment bootstrap，以及最小拾取、丢弃、装备/卸下写链路。
+
+仍需注意：
+
+- 这些写链路目前主要服务 P0 客户端联调，物品堆叠、占格形状、绑定、掉落保护、拾取权限和装备条件还没有完整落地。
+- MySQL 后端的部分物品操作仍是多步骤写入，不是完整事务闭环；正式化前需要把拾取、移动、装备和 starter 初始化整理为原子操作。
+- `quickbar` 当前能持久化初始化和进图下发，但运行时 `quick` 拖拽/变更链路仍需结合真实客户端发包补齐。

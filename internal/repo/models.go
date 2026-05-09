@@ -97,6 +97,11 @@ type Equipment struct {
 	UpdatedAt       time.Time
 }
 
+type EquippedItem struct {
+	EquipmentSlot uint8
+	Item          InventoryItem
+}
+
 type GMLog struct {
 	ID                uint64
 	OperatorAccountID uint64
@@ -177,6 +182,32 @@ type InsertGMLogParams struct {
 	PayloadJSON       []byte
 }
 
+type CreateInventoryItemParams struct {
+	InventoryID  uint64
+	SlotIndex    uint32
+	ItemVNUM     uint32
+	Quantity     uint32
+	PlusPoint    int32
+	SpecialFlag1 int32
+	SpecialFlag2 int32
+	Endurance    int32
+	MaxEndurance int32
+	ExtraJSON    []byte
+}
+
+type UpsertEquipmentParams struct {
+	CharacterID     uint64
+	EquipmentSlot   uint8
+	InventoryItemID uint64
+}
+
+type MoveInventoryItemParams struct {
+	CharacterID uint64
+	ItemID      uint64
+	InventoryID uint64
+	SlotIndex   uint32
+}
+
 type AccountRepository interface {
 	GetAccountByID(ctx context.Context, id uint64) (Account, error)
 	GetAccountByUsername(ctx context.Context, username string) (Account, error)
@@ -200,6 +231,16 @@ type CharacterStatsRepository interface {
 
 type InventoryRepository interface {
 	CreateDefaultInventories(ctx context.Context, characterID uint64) error
+	ListInventoriesByCharacter(ctx context.Context, characterID uint64) ([]Inventory, error)
+	ListInventoryItemsByInventory(ctx context.Context, inventoryID uint64) ([]InventoryItem, error)
+	CreateInventoryItem(ctx context.Context, params CreateInventoryItemParams) (InventoryItem, error)
+	GetInventoryByType(ctx context.Context, characterID uint64, inventoryType string) (Inventory, error)
+	GetInventoryItemForCharacter(ctx context.Context, characterID, itemID uint64) (InventoryItem, Inventory, error)
+	MoveInventoryItem(ctx context.Context, params MoveInventoryItemParams) (InventoryItem, error)
+	DeleteInventoryItem(ctx context.Context, characterID, itemID uint64) (InventoryItem, error)
+	UpsertEquipment(ctx context.Context, params UpsertEquipmentParams) error
+	RemoveEquipment(ctx context.Context, characterID uint64, equipmentSlot uint8) error
+	ListEquippedItemsByCharacter(ctx context.Context, characterID uint64) ([]EquippedItem, error)
 }
 
 type AuditRepository interface {

@@ -13,12 +13,13 @@ CREATE TABLE accounts (
     UNIQUE KEY uk_accounts_username (username),
     KEY idx_accounts_status (status),
     KEY idx_accounts_role (gm_role)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE characters (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id        BIGINT UNSIGNED NOT NULL,
     slot_index        TINYINT UNSIGNED NOT NULL,
+    active_slot_index TINYINT UNSIGNED GENERATED ALWAYS AS (CASE WHEN is_deleted = 0 THEN slot_index ELSE NULL END) STORED,
     name              VARCHAR(50)     NOT NULL,
     race              TINYINT UNSIGNED NOT NULL,
     sex               TINYINT UNSIGNED NOT NULL,
@@ -39,11 +40,11 @@ CREATE TABLE characters (
     PRIMARY KEY (id),
     CONSTRAINT fk_characters_account FOREIGN KEY (account_id) REFERENCES accounts (id),
     UNIQUE KEY uk_characters_name (name),
-    UNIQUE KEY uk_characters_account_slot (account_id, slot_index),
+    UNIQUE KEY uk_characters_account_active_slot (account_id, active_slot_index),
     KEY idx_characters_account (account_id),
     KEY idx_characters_map (map_id, zone_id),
     KEY idx_characters_deleted (account_id, is_deleted)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE character_stats (
     character_id       BIGINT UNSIGNED NOT NULL,
@@ -66,7 +67,7 @@ CREATE TABLE character_stats (
     updated_at         DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (character_id),
     CONSTRAINT fk_character_stats_character FOREIGN KEY (character_id) REFERENCES characters (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE inventories (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -79,7 +80,7 @@ CREATE TABLE inventories (
     PRIMARY KEY (id),
     CONSTRAINT fk_inventories_character FOREIGN KEY (character_id) REFERENCES characters (id),
     UNIQUE KEY uk_inventories_character_type (character_id, inventory_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE inventory_items (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -100,7 +101,7 @@ CREATE TABLE inventory_items (
     CONSTRAINT fk_inventory_items_inventory FOREIGN KEY (inventory_id) REFERENCES inventories (id),
     UNIQUE KEY uk_inventory_items_slot (inventory_id, slot_index),
     KEY idx_inventory_items_item_vnum (item_vnum)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE equipments (
     character_id      BIGINT UNSIGNED NOT NULL,
@@ -112,7 +113,7 @@ CREATE TABLE equipments (
     CONSTRAINT fk_equipments_character FOREIGN KEY (character_id) REFERENCES characters (id),
     CONSTRAINT fk_equipments_item FOREIGN KEY (inventory_item_id) REFERENCES inventory_items (id),
     UNIQUE KEY uk_equipments_item (inventory_item_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE gm_logs (
     id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -131,4 +132,4 @@ CREATE TABLE gm_logs (
     KEY idx_gm_logs_action_created (action, created_at),
     KEY idx_gm_logs_target_character (target_character_id, created_at),
     KEY idx_gm_logs_target_account (target_account_id, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

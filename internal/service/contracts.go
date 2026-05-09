@@ -52,6 +52,60 @@ type CharacterSelectionResult struct {
 	ZoneTicket  string
 }
 
+type CharacterStatusSnapshot struct {
+	Vital         uint32
+	MaxVital      uint32
+	Mana          uint32
+	MaxMana       uint32
+	Stamina       uint32
+	MaxStamina    uint32
+	EPower        uint32
+	MaxEPower     uint32
+	Level         uint32
+	Experience    uint64
+	Money         uint64
+	LevelUpPoints uint32
+	Strength      uint32
+	Intelligence  uint32
+	Dexterity     uint32
+	Constitution  uint32
+	Charisma      uint32
+}
+
+type InventorySnapshot struct {
+	InventoryType string
+	SlotIndex     uint32
+	ItemIndex     uint64
+	ItemVNUM      uint32
+	Quantity      uint32
+	PlusPoint     int32
+	SpecialFlag1  int32
+	SpecialFlag2  int32
+	Endurance     int32
+	MaxEndurance  int32
+}
+
+type GroundItemSnapshot struct {
+	ItemIndex    uint64
+	ItemVNUM     uint32
+	PlusPoint    int32
+	SpecialFlag1 int32
+	SpecialFlag2 int32
+	Endurance    int32
+	MaxEndurance int32
+}
+
+type EquipmentSnapshot struct {
+	EquipmentSlot uint8
+	ItemIndex     uint64
+	ItemVNUM      uint32
+	PlusPoint     int32
+	SpecialFlag1  int32
+	SpecialFlag2  int32
+	Endurance     int32
+	MaxEndurance  int32
+}
+
 type OnlineSpawnResult struct {
 	AccountID   uint64
 	CharacterID uint64
@@ -66,6 +120,10 @@ type OnlineSpawnResult struct {
 	PosY        float64
 	PosZ        float64
 	Direction   float64
+	Status      CharacterStatusSnapshot
+	Inventory   []InventorySnapshot
+	Equipment   []EquipmentSnapshot
+	MapWearings [7]int32
 }
 
 type AuthService interface {
@@ -84,4 +142,10 @@ type CharacterService interface {
 type ZoneEntryService interface {
 	EnterWorld(ctx context.Context, zoneTicket string) (OnlineSpawnResult, error)
 	SaveLogoutPosition(ctx context.Context, characterID uint64, mapID, zoneID uint32, posX, posY, posZ, direction float64) error
+	PickGroundItem(ctx context.Context, characterID uint64, item GroundItemSnapshot) (InventorySnapshot, error)
+	FindBagItemBySlot(ctx context.Context, characterID uint64, slotIndex uint32) (InventorySnapshot, bool, error)
+	MoveBagItem(ctx context.Context, characterID, itemID uint64, slotIndex uint32) (InventorySnapshot, error)
+	DropInventoryItem(ctx context.Context, characterID, itemID uint64) (GroundItemSnapshot, error)
+	EquipInventoryItem(ctx context.Context, characterID, itemID uint64, equipmentSlot uint8) (EquipmentSnapshot, [7]int32, error)
+	UnequipSlot(ctx context.Context, characterID uint64, equipmentSlot uint8) (EquipmentSnapshot, [7]int32, error)
 }

@@ -75,7 +75,11 @@ func (s *characterService) ListCharacters(ctx context.Context, accountID uint64)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, summarizeCharacter(character, stats))
+		equippedItems, err := s.inventories.ListEquippedItemsByCharacter(ctx, character.ID)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, summarizeCharacter(character, stats, equippedItems))
 	}
 	return out, nil
 }
@@ -159,7 +163,11 @@ func (s *characterService) CreateCharacter(ctx context.Context, request CreateCh
 		return CharacterSummary{}, err
 	}
 
-	return summarizeCharacter(character, stats), nil
+	equippedItems, err := s.inventories.ListEquippedItemsByCharacter(ctx, character.ID)
+	if err != nil {
+		return CharacterSummary{}, err
+	}
+	return summarizeCharacter(character, stats, equippedItems), nil
 }
 
 func (s *characterService) DeleteCharacter(ctx context.Context, accountID, characterID uint64) error {
@@ -243,7 +251,13 @@ func starterStats(race uint8) baseStats {
 	return base
 }
 
-func summarizeCharacter(character repo.Character, stats repo.CharacterStats) CharacterSummary {
+func summarizeCharacter(character repo.Character, stats repo.CharacterStats, equippedItems []repo.EquippedItem) CharacterSummary {
+	var wearings [8]int32
+	for _, equipped := range equippedItems {
+		if int(equipped.EquipmentSlot) < len(wearings) {
+			wearings[equipped.EquipmentSlot] = int32(equipped.Item.ItemVNUM)
+		}
+	}
 	return CharacterSummary{
 		CharacterID:  character.ID,
 		SlotIndex:    character.SlotIndex,
@@ -267,6 +281,6 @@ func summarizeCharacter(character repo.Character, stats repo.CharacterStats) Cha
 		Dexterity:    stats.Dexterity,
 		Constitution: stats.Constitution,
 		Charisma:     stats.Charisma,
-		Wearings:     [8]int32{0, 0, 0, 0, 0, 0, 0, 0},
+		Wearings:     wearings,
 	}
 }
