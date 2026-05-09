@@ -112,7 +112,7 @@ Python 参考仓库坚持认为：
 | 命令 | 来源 | 备注 |
 |---|---|---|
 | `login\n` | `PacketSend.cpp::SendLogin` | 登录阶段第一行 |
-| `play\n` | `PacketSend.cpp::SendLogin` | 选服/进入下一阶段 |
+| `play\n` | `PacketSend.cpp::SendLogin` | 世界服重连时使用 |
 | `<id>\n` | `PacketSend.cpp::SendLogin` | 第二行 |
 | `<pw> <w|d> <f|n> <c|0>\n` | `PacketSend.cpp::SendLogin` | 第三行 |
 | `char_new ...\n` | `sheet.cpp::SendNewChar` | 建角命令 |
@@ -120,7 +120,23 @@ Python 参考仓库坚持认为：
 | `char_exist ...\n` | `sheet.cpp::ConfirmExist` | 名字占用检查 |
 | `go_world <world> <sub>\n` | `ControlGate.cpp` | 地图切换/跳转 |
 
-结论：**LGS/GMS 前半段并不是“纯文本 socket 协议”，而是“文本命令 payload + rnPacket 帧封装”。**
+结论：**登录、选角、换图控制命令都不是“纯文本 socket 协议”，而是“文本命令 payload + rnPacket 帧封装”。**
+
+### 3.1 当前客户端可见拓扑
+
+根据 `sheet.cpp::Connect()`、`sheet.cpp::StartGame()`、`main.cpp::ConnectWorld()`，当前客户端可见的连接流程更像：
+
+1. 连接认证/选角入口
+2. 发送版本号帧
+3. 发送 `login -> username -> password flags`
+4. 收到 `chars_*` 文本响应并完成选角
+5. 发送 `start ...`
+6. 收到 `go_world ip port world area`
+7. 断开并连接世界服
+8. 再次发送版本号帧
+9. 再次发送 `play -> username -> password flags`
+
+也就是说，**客户端源码没有证据表明它会显式携带 GMS/ZS ticket**。因此 ticket/session 应放在服务端内部实现，不应再沿用 Python 参考里“客户端拿 token 直接跳服”的说法。
 
 ## 4. 客户端 opcode 计数
 
@@ -211,7 +227,13 @@ Python 参考仓库坚持认为：
 | 5 | `bFirm` | `tBOOL` | 1 |
 | 6 | `bInternalConnect` | `tBOOL` | 1 |
 
-> 但客户端真实登录 UI 还会发送 `SendNetMessage()` 文本命令，因此此结构在正式链路中的使用点必须抓包确认。
+补充结论：
+
+- 在当前客户端源码里，`ReqLogin / ReqGameStart / ReqGamePlayReady` 只在 `packet_enum.h` 中出现
+- 没有检索到对应的发送代码路径
+- 当前可见登录/选角/进图链路实际走的是 `SendNetMessage()` 文本命令帧
+
+所以在 P0 实现中，`ReqeustLogin` 应视为**待进一步抓包确认的备用/遗留结构**，而不是主链路首选实现。
 
 ### 6.2 `PreCharInfo` / `RequestCharNew`
 
@@ -388,11 +410,12 @@ Python 参考仓库坚持认为：
 - 14-bit opcode + 2-bit type 的 subheader 编解码
 - 按客户端 `size_` 语义构建/切分帧
 - 文本命令帧封装
+- 基于客户端 `SEED_256_KISA.cpp` 的 SEED transport（已用参考向量校验）
 - 从客户端 `packet_enum.h` 生成 Go opcode 常量
 
 ## 8. 待抓包确认项
 
-1. 登录、选服、建角、删角、选角各阶段到底哪些命令仍走 `SendNetMessage()`
+1. 登录、建角、删角、选角各阶段到底哪些命令仍走 `SendNetMessage()`
 2. `ReqeustLogin` typed packet 在正式链路中的真实使用点
-3. GMS -> ZS handoff 是文本命令、typed packet，还是二者混用
+3. 世界服首包除了 `play` 外是否还存在必须的文本初始化命令
 4. SEED 是否全阶段开启，还是只在特定连接阶段启用

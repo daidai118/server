@@ -19,50 +19,58 @@
 ```mermaid
 stateDiagram-v2
     [*] --> LoginStarted
-    LoginStarted --> Authenticated: LGS credentials accepted
-    Authenticated --> GMSReady: issue GMS ticket
-    GMSReady --> CharacterSelected: GMS ticket consumed + role chosen
-    CharacterSelected --> ZoneReady: issue ZS ticket
-    ZoneReady --> InWorld: ZS ticket consumed + player entity created
-    InWorld --> GMSReady: leave world / return char select
+    LoginStarted --> Authenticated: gateway credentials accepted
+    Authenticated --> CharacterSelectReady: logical GMS ready
+    CharacterSelectReady --> ZoneHandoffReady: character selected + zone handoff issued
+    ZoneHandoffReady --> InWorld: ZS handoff consumed + player entity created
+    InWorld --> CharacterSelectReady: leave world / return char select
     InWorld --> Disconnected: disconnect
-    GMSReady --> Disconnected: disconnect
+    CharacterSelectReady --> Disconnected: disconnect
     Authenticated --> Disconnected: disconnect
     Disconnected --> LoginStarted: relogin
 ```
 
 ## 正常链路
 
+### 逻辑链路
+
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant L as LGS
+    participant GW as Auth/Select Gateway
     participant S as SessionManager
-    participant G as GMS
+    participant G as CharacterService (logical GMS)
     participant Z as ZS
 
-    C->>L: login credentials
-    L->>S: StartAccountLogin(account_id)
-    S-->>L: session_id
-    L->>S: IssueGMSTicket(session_id, account_id)
-    S-->>L: gms_ticket
-    L-->>C: server list + gms_ticket
+    C->>GW: version + login credentials
+    GW->>S: StartAccountLogin(account_id)
+    S-->>GW: session_id
+    GW->>G: list characters
+    G-->>GW: character list
+    GW-->>C: chars_start / chars_exist / chars_end
 
-    C->>G: connect + gms_ticket
-    G->>S: ConsumeGMSTicket(gms_ticket)
-    S-->>G: session_id/account_id
-    G-->>C: character list
-
-    C->>G: select character
+    C->>GW: start <slot> ...
+    GW->>G: select character
     G->>S: IssueZoneTicket(session_id, character_id)
     S-->>G: zone_ticket
-    G-->>C: zone endpoint + zone_ticket
+    G-->>GW: zone handoff ready
+    GW-->>C: go_world <ip> <port> <world> <area>
 
-    C->>Z: connect + zone_ticket
-    Z->>S: ConsumeZoneTicket(zone_ticket)
+    C->>Z: version + play credentials
+    Z->>S: ConsumeZoneTicket(internal handoff)
     S-->>Z: session_id/account_id/character_id
     Z-->>C: map enter / initial state
 ```
+
+### 客户端可见链路
+
+当前客户端源码显示，客户端并**不会显式携带 ticket 到 ZS**；它会在 `go_world` 后重新连世界服，并再次发送 `play -> username -> password flags`。
+
+因此 P0 的兼容实现应当：
+
+- 保持 **ticket 在服务端内部存在**
+- 由 gateway 在选角成功时登记一个短 TTL 的内部 zone handoff
+- 由 ZS 在 `play` 登录成功后消费该 handoff，而不是信任客户端自报角色身份
 
 ## Ticket 规则
 
@@ -103,7 +111,7 @@ P0 不做复杂断线保活，只做：
 
 - 断线时 ZS 立刻清在线实体
 - 最后坐标、地图、朝向落盘
-- 客户端重新从 LGS -> GMS -> ZS 走全链路
+- 客户端重新从 gateway -> 选角 -> `go_world` -> ZS 走全链路
 
 ### P1 可选增强
 
@@ -113,11 +121,11 @@ P0 不做复杂断线保活，只做：
 
 ## 服务端必须拒绝的场景
 
-1. 直接连 GMS 并自报 `account_id`
-2. 直接连 ZS 并自报 `character_id`
+1. 直接连世界服并自报 `character_id`
+2. 没有有效内部 handoff 就试图进入 ZS
 3. 使用过期 ticket
 4. 重复消费同一 ticket
-5. 用 A 账号 ticket 访问 B 账号角色
+5. 用 A 账号会话访问 B 账号角色
 6. 新登录已经替换旧 session 后，旧连接继续请求写操作
 
 ## 落地到当前代码

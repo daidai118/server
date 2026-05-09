@@ -46,16 +46,14 @@ Go 重写按四层拆分：
 
 ```mermaid
 flowchart LR
-    Client[Client] --> LGS[LGS\n登录入口]
+    Client[Client] --> Gateway[Auth/Select Gateway\n客户端可见入口]
     Client --> Admin[Admin Web]
-    LGS --> Session[SessionManager\n统一会话/票据]
-    LGS --> AccountSvc[AccountService]
+    Gateway --> Session[SessionManager\n统一会话/票据]
+    Gateway --> AccountSvc[AccountService]
     AccountSvc --> Repo[(MySQL)]
-    LGS --> GMS[GMS\n角色/路由]
-    GMS --> Session
-    GMS --> CharacterSvc[CharacterService]
+    Gateway --> CharacterSvc[CharacterService\n逻辑上属于 GMS]
     CharacterSvc --> Repo
-    GMS --> ZS[ZS\n在线世界]
+    Gateway --> ZS[ZS\n在线世界]
     ZS --> Session
     ZS --> World[World Runtime\nAOI/实体/地图实例]
     ZS --> Game[Game Rules\n战斗/物品/技能/任务]
@@ -65,6 +63,13 @@ flowchart LR
     AdminSvc --> Audit[(GM / Economy Logs)]
     Repo --> Audit
 ```
+
+> 当前客户端源码显示，**客户端可见连接拓扑更像“两段式”**：
+>
+> 1. 初始连接到认证/选角入口
+> 2. 收到 `go_world <ip> <port> <world> <area>` 后，再重连到世界服
+>
+> 也就是说，`GMS` 的角色/路由职责在实现上可以先**逻辑独立、进程上与 LGS 同入口共置**，不必为了贴合旧 Python 参考硬拆成客户端必须感知的第三跳。
 
 ## 建议目录职责
 
@@ -88,36 +93,35 @@ internal/
 
 ## P0 期内的最小落地形态
 
-### LGS
+### LGS / Gateway
 
 职责：
 
 - 账号认证
 - 创建登录会话
-- 下发 GMS ticket
-- 提供服务器列表
-
-不负责：
-
-- 角色列表
-- 角色删除
-- 进入地图
-
-### GMS
-
-职责：
-
-- 验证 LGS ticket
-- 查询角色列表
-- 创建/删除角色
-- 选择角色
-- 下发 ZS ticket
+- 暴露客户端可见的初始入口
+- 承接文本命令帧登录流程
 
 不负责：
 
 - 持续世界状态
 - AOI 广播
 - 战斗
+
+### GMS（逻辑服务）
+
+职责：
+
+- 查询角色列表
+- 创建/删除角色
+- 选择角色
+- 生成 ZS handoff
+- 维护登录后到进图前的状态迁移
+
+说明：
+
+- P0 阶段允许与 LGS 共置在同一个监听器后面
+- 但代码边界仍应保持独立，避免重新滑回“所有逻辑都写在一个 socket handler”
 
 ### ZS
 

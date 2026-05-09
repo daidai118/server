@@ -12,28 +12,28 @@
 
 ## 下一步（按优先级）
 
-### P0-3 LGS
-- [ ] 确认登录阶段最终 transport：文本命令帧 vs typed packet 的真实组合
-- [ ] 实现账号认证服务
-- [ ] 对接 SessionManager，签发 GMS ticket
-- [ ] 明确错误码与服务器列表结构
+### P0-3 LGS / Gateway
+- [x] 确认登录阶段 transport：文本命令帧是主链路，可见路径未使用 typed `ReqLogin`
+- [x] 实现账号认证服务
+- [x] 对接 SessionManager，建立登录会话并签发逻辑 GMS ticket
+- [x] 明确错误码和文本命令响应格式
 
-### P0-4 GMS
-- [ ] ticket 校验中间件
-- [ ] 角色列表查询
-- [ ] 建角事务（角色 + stats + 默认 inventories）
-- [ ] 删角鉴权与软删除
-- [ ] 选角后签发 ZS ticket
+### P0-4 GMS（逻辑共置于 gateway）
+- [x] ticket / handoff 中间件
+- [x] 角色列表查询
+- [x] 建角流程（角色 + stats + 默认 inventories）
+- [x] 删角鉴权与软删除
+- [x] 选角后签发 ZS ticket 并登记内部 handoff
 
 ### P0-5 ZS
-- [ ] zone ticket 校验
-- [ ] 玩家在线实体创建
-- [ ] 基础地图进入
-- [ ] `UpdMapInChar / UpdMapInNpc / UpdMapInItem / UpdMapOut`
-- [ ] `ReqCharWalk / ReqCharPlace / ReqCharStop` 广播
-- [ ] 断线位置落盘
+- [x] zone ticket 校验
+- [x] 玩家在线实体创建
+- [x] 基础地图进入
+- [x] `UpdMapInChar / UpdMapInNpc / UpdMapInItem / UpdMapOut`
+- [x] `ReqCharWalk / ReqCharPlace / ReqCharStop` 广播
+- [x] 断线位置落盘
 
 ### 协议风险项
-- [ ] 把 SEED transport 实现补进 Go
+- [x] 把 SEED transport 实现补进 Go
 - [ ] 用抓包或客户端实机确认 LGS/GMS/ZS 的实际帧形态
-- [ ] 验证 `ReqeustLogin` 在正式链路中的使用位置
+- [x] 用客户端源码验证 `ReqeustLogin` 在可见链路中的使用位置

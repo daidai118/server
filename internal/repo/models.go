@@ -128,12 +128,33 @@ type CreateCharacterParams struct {
 	Race      uint8
 	Sex       uint8
 	Hair      uint8
+	Level     uint32
 	MapID     uint32
 	ZoneID    uint32
 	PosX      float64
 	PosY      float64
 	PosZ      float64
 	Direction float64
+	Money     uint64
+}
+
+type CreateCharacterStatsParams struct {
+	CharacterID  uint64
+	Strength     uint32
+	Intelligence uint32
+	Dexterity    uint32
+	Constitution uint32
+	Charisma     uint32
+	HP           uint32
+	MaxHP        uint32
+	MP           uint32
+	MaxMP        uint32
+	Stamina      uint32
+	MaxStamina   uint32
+	EPower       uint32
+	MaxEPower    uint32
+	SkillPoints  uint32
+	StatusPoints uint32
 }
 
 type UpsertCharacterLocationParams struct {
@@ -166,9 +187,15 @@ type AccountRepository interface {
 type CharacterRepository interface {
 	ListCharactersByAccount(ctx context.Context, accountID uint64) ([]Character, error)
 	GetCharacterByID(ctx context.Context, id uint64) (Character, error)
+	GetCharacterByName(ctx context.Context, name string) (Character, error)
 	CreateCharacter(ctx context.Context, params CreateCharacterParams) (Character, error)
 	SoftDeleteCharacter(ctx context.Context, accountID, characterID uint64) error
 	UpsertCharacterLocation(ctx context.Context, params UpsertCharacterLocationParams) error
+}
+
+type CharacterStatsRepository interface {
+	GetCharacterStats(ctx context.Context, characterID uint64) (CharacterStats, error)
+	CreateCharacterStats(ctx context.Context, params CreateCharacterStatsParams) (CharacterStats, error)
 }
 
 type InventoryRepository interface {
